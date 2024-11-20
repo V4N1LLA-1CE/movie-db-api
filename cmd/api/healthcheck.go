@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// GET /v1/healthcheck
 func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "status: alive")
 	fmt.Fprintf(w, "environment: %s\n", app.config.env)
