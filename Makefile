@@ -1,0 +1,4 @@
+watch:
+	air
+
+.PHONY: air
