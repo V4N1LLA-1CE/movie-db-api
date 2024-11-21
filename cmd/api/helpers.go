@@ -23,10 +23,14 @@ func (app *application) readIdParam(r *http.Request) (int64, error) {
 	return id, nil
 }
 
+type envelope map[string]any
+
 // helper to write json to response
 // returns json response body that has been written and the error if there is any
-func (app *application) writeJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
-	json, err := json.Marshal(data)
+func (app *application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
+	// use MarshalIndent to add whitespace to encoded json
+	// no line prefix and tab indents for each element
+	json, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
 		return err
 	}
