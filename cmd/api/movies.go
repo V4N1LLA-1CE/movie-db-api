@@ -10,7 +10,23 @@ import (
 
 // POST /v1/movies
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "create a new movie")
+	// create struct to hold data from post
+	var input struct {
+		Title   string   `json:"title"`
+		Year    int32    `json:"year"`
+		Runtime int32    `json:"runtime"`
+		Genres  []string `json:"genres"`
+	}
+
+	// decode request body as json and into input struct
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	// dump into http response
+	fmt.Fprintf(w, "%+v\n", input)
 }
 
 // GET /v1/movies/:id

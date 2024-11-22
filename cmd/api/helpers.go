@@ -3,8 +3,11 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -49,5 +52,78 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	w.WriteHeader(status)
 	w.Write(json)
 
+	return nil
+}
+
+func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	// limit size of request body to 1MB to mitigate DOS on API and prevent larger payloads
+	maxBytes := 1_048_576 // 1MB = 1024KB = 1024 * 1024 bytes
+	http.MaxBytesReader(w, r.Body, int64(maxBytes))
+
+	// initialise decoder and configure to disallow
+	// fields that shouldn't be there
+	// decoder will return error if there's an unknown field
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+
+	// decode request body into destination (dst any)
+	err := dec.Decode(dst)
+	if err != nil {
+		// error during decoding
+		var syntaxError *json.SyntaxError
+		var unmarshalTypeError *json.UnmarshalTypeError
+		var invalidUnmarshalError *json.InvalidUnmarshalError
+		var maxBytesError *http.MaxBytesError
+
+		switch {
+		// if syntax error in json body
+		// return plain english error message with location of issue
+		case errors.As(err, &syntaxError):
+			return fmt.Errorf("body contains badly-formed JSON (at character %d)", syntaxError.Offset)
+
+		// Decode() may return io.ErrUnexpectedEOF error
+		// for syntax errors in JSON, so check and return readable error
+		case errors.Is(err, io.ErrUnexpectedEOF):
+			return errors.New("body contains badly-formed JSON")
+
+		// if error relates to specific field then
+		// include in error message
+		case errors.As(err, &unmarshalTypeError):
+			if unmarshalTypeError.Field != "" {
+				return fmt.Errorf("body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
+			}
+			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
+
+		case strings.HasPrefix(err.Error(), "json: unknown field "):
+			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
+			return fmt.Errorf("body contains unknown key %s", fieldName)
+
+		// check for when json body is empty and return
+		// plain english error message
+		case errors.Is(err, io.EOF):
+			return errors.New("body must not be empty")
+
+		// panic for invalid unmarshal error
+		case errors.As(err, &invalidUnmarshalError):
+			panic(err)
+
+		case errors.As(err, &maxBytesError):
+			return fmt.Errorf("body must not be larger than %d bytes", maxBytesError.Limit)
+
+		// for anything else, just return error message as is
+		default:
+			return err
+		}
+	}
+
+	// call Decode() again using pointer to empty anonymous struct
+	// as destination. This is to confirm that request body only confirms
+	// a single json value and no additional data
+	err = dec.Decode(&struct{}{})
+	if !errors.Is(err, io.EOF) {
+		return errors.New("body must only contain a single JSON value")
+	}
+
+	// return no error
 	return nil
 }
