@@ -23,6 +23,6 @@ func (app *application) routes() http.Handler {
 	r.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
 	r.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
 
-	// return router instance
+	// return router instance and use middleware for panic recovery
 	return app.recoverPanic(r)
 }
