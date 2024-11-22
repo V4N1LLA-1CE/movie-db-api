@@ -24,5 +24,5 @@ func (app *application) routes() http.Handler {
 	r.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
 
 	// return router instance
-	return r
+	return app.recoverPanic(r)
 }
