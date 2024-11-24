@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"database/sql"
-	"flag"
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -35,19 +36,38 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("error loading .env filel: %v\n", err)
 	}
+
+	err, ok := envExists([]string{
+		"POSTGRES_CONTAINER_NAME",
+		"POSTGRES_SUPERUSER",
+		"POSTGRES_SUPERUSER_PASSWORD",
+		"DB_NAME",
+		"DB_USER",
+		"DB_PASS",
+		"PG_DSN",
+		"PORT",
+		"ENVIRONMENT",
+	}...)
+
+	if !ok {
+		log.Fatalf(err)
+	}
 }
 
 func main() {
 	// declare config
 	var cfg config
 
-	// get postgres dsn from env
+	// get env variables into cfg
 	cfg.db.dsn = os.Getenv("PG_DSN")
 
-	// read port and env command line flags and write into config
-	flag.IntVar(&cfg.port, "p", 8080, "API server port")
-	flag.StringVar(&cfg.env, "env", "dev", "Environment (dev|staging|prod)")
-	flag.Parse()
+	p, err := strconv.Atoi(os.Getenv("PORT"))
+	if err != nil {
+		log.Fatalf("failed to parse PORT env, make sure it is a number")
+	}
+	cfg.port = p
+
+	cfg.env = os.Getenv("ENVIRONMENT")
 
 	// initialise structured logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -92,6 +112,8 @@ func openDB(cfg config) (*sql.DB, error) {
 	}
 
 	// context with 5-second timeout deadline
+	// if max open connections is reached at a time this will make
+	// it so User's request will timeout instead of hang indefinitely
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -105,4 +127,21 @@ func openDB(cfg config) (*sql.DB, error) {
 	}
 
 	return conn, nil
+}
+
+func envExists(keys ...string) (string, bool) {
+	missing := []string{}
+
+	// loop through all envs and check missing
+	for _, key := range keys {
+		if e := os.Getenv(key); e == "" {
+			missing = append(missing, key)
+		}
+	}
+
+	if len(missing) > 0 {
+		return fmt.Sprintln("missing env variables:", strings.Join(missing, ", ")), false
+	}
+
+	return "", true
 }
