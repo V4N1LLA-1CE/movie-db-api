@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,14 +16,6 @@ import (
 )
 
 const version = "1.0.0"
-
-type config struct {
-	port int
-	env  string
-	db   struct {
-		dsn string
-	}
-}
 
 type application struct {
 	config config
@@ -47,6 +38,9 @@ func init() {
 		"PG_DSN",
 		"PORT",
 		"ENVIRONMENT",
+		"POSTGRES_MAXOPENCONNS",
+		"POSTGRES_MAXIDLECONNS",
+		"POSTGRES_MAXIDLETIME",
 	}...)
 
 	if !ok {
@@ -55,19 +49,8 @@ func init() {
 }
 
 func main() {
-	// declare config
-	var cfg config
-
-	// get env variables into cfg
-	cfg.db.dsn = os.Getenv("PG_DSN")
-
-	p, err := strconv.Atoi(os.Getenv("PORT"))
-	if err != nil {
-		log.Fatalf("failed to parse PORT env, make sure it is a number")
-	}
-	cfg.port = p
-
-	cfg.env = os.Getenv("ENVIRONMENT")
+	// get app configuration
+	cfg := newConfig()
 
 	// initialise structured logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -110,6 +93,14 @@ func openDB(cfg config) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// set the following configs for db:
+	// max number of open (in-use + idle) connections in pool
+	// max number of idle connections in pool
+	// maximum timeout for idle connections (conns not being used)
+	conn.SetMaxOpenConns(cfg.db.maxOpenConns)
+	conn.SetMaxIdleConns(cfg.db.maxIdleConns)
+	conn.SetConnMaxIdleTime(cfg.db.maxIdleTime)
 
 	// context with 5-second timeout deadline
 	// if max open connections is reached at a time this will make
