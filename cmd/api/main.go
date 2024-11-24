@@ -30,11 +30,9 @@ func init() {
 
 	err, ok := envExists([]string{
 		"POSTGRES_CONTAINER_NAME",
-		"POSTGRES_SUPERUSER",
-		"POSTGRES_SUPERUSER_PASSWORD",
-		"DB_NAME",
-		"DB_USER",
-		"DB_PASS",
+		"POSTGRES_USER",
+		"POSTGRES_PASSWORD",
+		"POSTGRES_DB_NAME",
 		"PG_DSN",
 		"PORT",
 		"ENVIRONMENT",
