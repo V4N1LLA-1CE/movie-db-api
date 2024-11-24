@@ -6,16 +6,32 @@ export
 pg-container:
 	docker run --name ${POSTGRES_CONTAINER_NAME} \
 		-p 5432:5432 \
-		-e POSTGRES_USER=${POSTGRES_SUPERUSER} \
-		-e POSTGRES_PASSWORD=${POSTGRES_SUPERUSER_PASSWORD} \
+		-e POSTGRES_USER=${POSTGRES_USER} \
+		-e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
 		-d postgres:latest
+
+# create db inside container
+pg-createdb:
+	docker exec -it ${POSTGRES_CONTAINER_NAME} createdb --username=${POSTGRES_USER} --owner=${POSTGRES_USER} ${POSTGRES_DB_NAME}
+
+# drop db inside container
+pg-dropdb:
+	docker exec -it ${POSTGRES_CONTAINER_NAME} dropdb ${POSTGRES_DB_NAME}
 
 # hop into container
 pg-exec:
 	docker exec -it ${POSTGRES_CONTAINER_NAME} /bin/bash
 
+# db migrate up
+pg-migrateup:
+	migrate -path db/migrations -database "${PG_DSN}" -verbose up
+
+# db migrate down
+pg-migratedown:
+	migrate -path db/migrations -database "${PG_DSN}" -verbose down
+
 # run with live reloading
 watch:
 	air
 
-.PHONY: watch pg-container pg-exec
+.PHONY: watch pg-container pg-exec pg-migrateup pg-migratedown pg-createdb pg-dropdb
