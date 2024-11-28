@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/V4N1LLA-1CE/movie-db-api/internal/data"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 )
@@ -20,6 +21,7 @@ const version = "1.0.0"
 type application struct {
 	config config
 	logger *slog.Logger
+	model  data.Models
 }
 
 func init() {
@@ -66,6 +68,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		model:  data.NewModels(conn),
 	}
 
 	// declare server
