@@ -41,9 +41,18 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// if validation passes, insert into movie db
+	err = app.model.Movies.Insert(movie)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	headers := make(http.Header)
+	// add location header so user knows where to find the movie created at /v1/movies/:movieid
 	headers.Set("Location", fmt.Sprintf("/v1/movies/%d", movie.ID))
 
+	// write json response with 201 Created status code along with movie data and headers
 	err = app.writeJSON(w, http.StatusCreated, envelope{"movie": movie}, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
