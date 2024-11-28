@@ -2,9 +2,11 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/V4N1LLA-1CE/movie-db-api/internal/validator"
+	"github.com/lib/pq"
 )
 
 // don't use int here to have guaranteed size
@@ -57,7 +59,37 @@ func (m MovieModel) Insert(movie *Movie) error {
 }
 
 func (m MovieModel) Get(id int64) (*Movie, error) {
-	return nil, nil
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	stmt := `SELECT id, created_at, title, year, runtime, genres, version
+  FROM movies
+  WHERE id = $1`
+
+	var movie Movie
+
+	err := m.DB.QueryRow(stmt, id).Scan(
+		&movie.ID,
+		&movie.CreatedAt,
+		&movie.Title,
+		&movie.Year,
+		&movie.Runtime,
+		pq.Array(&movie.Genres), // can't find pgx equivalent, so now i'm using both pq and pgx, f*ck
+		&movie.Version,
+	)
+
+	// handle error
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &movie, nil
 }
 
 func (m MovieModel) Update(movie *Movie) error {
