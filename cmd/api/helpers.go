@@ -78,35 +78,48 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		switch {
 		// if syntax error in json body
 		// return plain english error message with location of issue
+		// example:
+		// {"name": "John, "age": 30} -> missing quote
 		case errors.As(err, &syntaxError):
 			return fmt.Errorf("body contains badly-formed JSON (at character %d)", syntaxError.Offset)
 
 		// Decode() may return io.ErrUnexpectedEOF error
 		// for syntax errors in JSON, so check and return readable error
+		// example:
+		// {"name": "John -> incomplete json
 		case errors.Is(err, io.ErrUnexpectedEOF):
 			return errors.New("body contains badly-formed JSON")
 
 		// if error relates to specific field then
 		// include in error message
+		// example:
+		// {"name": "John", "age": "thirty"} -> age type mismatch
 		case errors.As(err, &unmarshalTypeError):
 			if unmarshalTypeError.Field != "" {
 				return fmt.Errorf("body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
 			}
 			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
 
+			// this error is for when json field doesn't exist in struct due to DisallowUnknownFields()
+			// example:
+			// {"name": "John", "nonexistent_field": "helloworld"} -> nonexistent_field doesn't exist for struct
 		case strings.HasPrefix(err.Error(), "json: unknown field "):
 			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
 			return fmt.Errorf("body contains unknown key %s", fieldName)
 
 		// check for when json body is empty and return
 		// plain english error message
+		// example:
+		// "" -> empty body (no JSON)
 		case errors.Is(err, io.EOF):
 			return errors.New("body must not be empty")
 
 		// panic for invalid unmarshal error
+		// decode won't work if destination (dst) is not a pointer
 		case errors.As(err, &invalidUnmarshalError):
 			panic(err)
 
+			// error for when data in request body is greater than 1MB
 		case errors.As(err, &maxBytesError):
 			return fmt.Errorf("body must not be larger than %d bytes", maxBytesError.Limit)
 
@@ -119,6 +132,8 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	// call Decode() again using pointer to empty anonymous struct
 	// as destination. This is to confirm that request body only confirms
 	// a single json value and no additional data
+	// this attempts to read more json after first object has been read i.e. {obj1}{obj2}
+	// if obj2 exists, its an error, because there should be only 1 obj in reqbody
 	err = dec.Decode(&struct{}{})
 	if !errors.Is(err, io.EOF) {
 		return errors.New("body must only contain a single JSON value")
