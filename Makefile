@@ -30,8 +30,14 @@ pg-migrateup:
 pg-migratedown:
 	migrate -path db/migrations -database "${PG_DSN}" -verbose down
 
+pg-build:
+	make pg-container && \
+	until docker exec ${POSTGRES_CONTAINER_NAME} pg_isready -U ${POSTGRES_USER}; do sleep 1; done && \
+	make pg-createdb && \
+	make pg-migrateup
+
 # run with live reloading
 watch:
 	air
 
-.PHONY: watch pg-container pg-exec pg-migrateup pg-migratedown pg-createdb pg-dropdb
+.PHONY: watch pg-container pg-exec pg-migrateup pg-migratedown pg-createdb pg-dropdb pg-build
