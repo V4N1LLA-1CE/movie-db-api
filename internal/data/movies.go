@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -56,7 +57,11 @@ func (m MovieModel) Insert(movie *Movie) error {
 		movie.Genres,
 	}
 
-	return m.DB.QueryRow(stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+	// context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 }
 
 func (m MovieModel) Get(id int64) (*Movie, error) {
@@ -70,7 +75,16 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 
 	var movie Movie
 
-	err := m.DB.QueryRow(stmt, id).Scan(
+	// create context with timeout
+	// 3 seconds after context.WithTimeout() is called, cancel will be called
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+
+	// defer cancel() after function to clean up resources (prevents mem leaks)
+	// NOTE: - defer will always run at the end of func, regardless of how function exits i.e. early returns etc
+	// it should be used for resource cleanup
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, stmt, id).Scan(
 		&movie.ID,
 		&movie.CreatedAt,
 		&movie.Title,
@@ -110,9 +124,13 @@ func (m MovieModel) Update(movie *Movie) error {
 		movie.Version,
 	}
 
-	// execute query
+	// context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// execute query with timeout
 	// if no matching rows (sql.ErrNoRows), that means the movie version has changed or record has been deleted
-	err := m.DB.QueryRow(stmt, args...).Scan(&movie.Version)
+	err := m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.Version)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -133,7 +151,11 @@ func (m MovieModel) Delete(id int64) error {
 	stmt := `DELETE FROM movies
   WHERE id = $1`
 
-	result, err := m.DB.Exec(stmt, id)
+	// context with 3 second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, stmt, id)
 	if err != nil {
 		return err
 	}
