@@ -5,9 +5,9 @@ import (
 	"errors"
 )
 
-// custom error for when Get() method looks up a movie that doesn't exist
 var (
 	ErrRecordNotFound = errors.New("record not found")
+	ErrUpdateConflict = errors.New("there has been an update conflict")
 )
 
 // models struct wraps all models using a single container

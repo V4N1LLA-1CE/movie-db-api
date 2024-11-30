@@ -93,9 +93,11 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 }
 
 func (m MovieModel) Update(movie *Movie) error {
+	// use optimistic locking for updating to prevent race conditions
+	// https://stackoverflow.com/questions/129329/optimistic-vs-pessimistic-locking/129397#129397
 	stmt := `UPDATE movies
   SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
-  WHERE id = $5
+  WHERE id = $5 AND version = $6
   RETURNING version`
 
 	args := []any{
@@ -104,9 +106,22 @@ func (m MovieModel) Update(movie *Movie) error {
 		movie.Runtime,
 		pq.Array(movie.Genres),
 		movie.ID,
+		movie.Version,
 	}
 
-	return m.DB.QueryRow(stmt, args...).Scan(&movie.Version)
+	// execute query
+	// if no matching rows (sql.ErrNoRows), that means the movie version has changed or record has been deleted
+	err := m.DB.QueryRow(stmt, args...).Scan(&movie.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrUpdateConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (m MovieModel) Delete(id int64) error {
