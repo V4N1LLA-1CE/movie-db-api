@@ -7,6 +7,7 @@ import (
 
 	"github.com/V4N1LLA-1CE/movie-db-api/internal/data"
 	"github.com/V4N1LLA-1CE/movie-db-api/internal/validator"
+	"github.com/google/uuid"
 )
 
 // POST /v1/movies
@@ -107,6 +108,21 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// check for X-Expected-Version header, check if movie version
+	// in database matches current version specified in the X-Expected-Version header in the
+	// current request from client
+	if r.Header.Get("X-Expected-Version") != "" {
+		expectedVersion, err := uuid.Parse(r.Header.Get("X-Expected-Version"))
+		if err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid version format"))
+			return
+		}
+		if movie.Version != expectedVersion {
+			app.updateConflictResponse(w, r)
+			return
+		}
+	}
+
 	// hold new data from client
 	// use pointers since they have non-zero value
 	// if theres no corresponding key in JSON, it will be nil
@@ -128,7 +144,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	// update movie from Get()
 	// this new updated movie struct will be used with Update()
 	// since it preserves id and created_at at
-	// if input.x is provided, use new values, otherwise just keep it the same
+	// if input.x is provided, use new values, otherwise just keep it the same (preserve previous)
 	if input.Title != nil {
 		movie.Title = *input.Title
 	}
