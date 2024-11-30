@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/V4N1LLA-1CE/movie-db-api/internal/validator"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -17,7 +18,7 @@ type Movie struct {
 	Year      int32     `json:"year,omitempty"`    // don't show in response if empty
 	Runtime   int32     `json:"runtime,omitempty"` // don't show in response if empty
 	Genres    []string  `json:"genres,omitempty"`  // don't show in response if empty
-	Version   int32     `json:"version"`
+	Version   uuid.UUID `json:"version"`           // needed for locking to prevent race conditions
 }
 
 func ValidateMovie(v *validator.Validator, movie *Movie) {
@@ -44,8 +45,8 @@ type MovieModel struct {
 
 // CRUD Methods below for movies
 func (m MovieModel) Insert(movie *Movie) error {
-	stmt := `INSERT INTO movies (title, year, runtime, genres)
-  VALUES ($1, $2, $3, $4)
+	stmt := `INSERT INTO movies (title, year, runtime, genres, version)
+  VALUES ($1, $2, $3, $4, uuid_generate_v4())
   RETURNING id, created_at, version`
 
 	args := []any{
@@ -96,7 +97,7 @@ func (m MovieModel) Update(movie *Movie) error {
 	// use optimistic locking for updating to prevent race conditions
 	// https://stackoverflow.com/questions/129329/optimistic-vs-pessimistic-locking/129397#129397
 	stmt := `UPDATE movies
-  SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
+  SET title = $1, year = $2, runtime = $3, genres = $4, version = uuid_generate_v4()
   WHERE id = $5 AND version = $6
   RETURNING version`
 
