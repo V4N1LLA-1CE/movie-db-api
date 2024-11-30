@@ -5,6 +5,9 @@ import (
 	"net/http"
 )
 
+// HTTP status codes
+// https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+
 // logs error message along with current request method and URL
 // into console
 func (app *application) logError(r *http.Request, err error) {
@@ -50,10 +53,18 @@ func (app *application) methodNotAllowedResponse(w http.ResponseWriter, r *http.
 	app.errorResponse(w, r, http.StatusMethodNotAllowed, message)
 }
 
+// use this to send 400 Bad Request
 func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
 }
 
+// use this to send 422 Unprocessable Content
 func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, errors)
+}
+
+// use this to send 409 Conflict
+func (app *application) updateConflictResponse(w http.ResponseWriter, r *http.Request) {
+	message := "unable to update the record due to an edit conflict, please try again"
+	app.errorResponse(w, r, http.StatusConflict, message)
 }
