@@ -22,7 +22,7 @@ func (app *application) routes() http.Handler {
 	r.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthCheckHandler)
 	r.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
 	r.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
-	r.HandlerFunc(http.MethodPut, "/v1/movies/:id", app.updateMovieHandler)
+	r.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.updateMovieHandler)
 	r.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovieHandler)
 
 	// return router instance and use middleware for panic recovery

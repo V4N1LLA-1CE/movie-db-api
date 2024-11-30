@@ -108,10 +108,13 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// hold new data from client
+	// use pointers since they have non-zero value
+	// if theres no corresponding key in JSON, it will be nil
+	// slice already has non zero so no need to use ptrs
 	var input struct {
-		Title   string   `json:"title"`
-		Year    int32    `json:"year"`
-		Runtime int32    `json:"runtime"`
+		Title   *string  `json:"title"`
+		Year    *int32   `json:"year"`
+		Runtime *int32   `json:"runtime"`
 		Genres  []string `json:"genres"`
 	}
 
@@ -125,10 +128,22 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	// update movie from Get()
 	// this new updated movie struct will be used with Update()
 	// since it preserves id and created_at at
-	movie.Title = input.Title
-	movie.Year = input.Year
-	movie.Runtime = input.Runtime
-	movie.Genres = input.Genres
+	// if input.x is provided, use new values, otherwise just keep it the same
+	if input.Title != nil {
+		movie.Title = *input.Title
+	}
+
+	if input.Year != nil {
+		movie.Year = *input.Year
+	}
+
+	if input.Runtime != nil {
+		movie.Runtime = *input.Runtime
+	}
+
+	if input.Genres != nil {
+		movie.Genres = input.Genres
+	}
 
 	// validate updated movie record
 	// send 422 Unprocessable Entity response
