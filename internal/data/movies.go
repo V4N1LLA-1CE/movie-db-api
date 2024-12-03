@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/V4N1LLA-1CE/movie-db-api/internal/validator"
@@ -175,11 +176,12 @@ func (m MovieModel) Delete(id int64) error {
 
 func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
 	// use postgres full-text search for title
-	stmt := `SELECT id, title, year, runtime, genres, created_at, version
-  FROM movies
-  WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
-  AND (genres @> $2 OR $2 = '{}')
-  ORDER BY id`
+	stmt := fmt.Sprintf(`
+    SELECT id, title, year, runtime, genres, created_at, version
+    FROM movies
+    WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
+    AND (genres @> $2 OR $2 = '{}')
+    ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

@@ -1,6 +1,10 @@
 package data
 
-import "github.com/V4N1LLA-1CE/movie-db-api/internal/validator"
+import (
+	"strings"
+
+	"github.com/V4N1LLA-1CE/movie-db-api/internal/validator"
+)
 
 type Filters struct {
 	Page         int
@@ -18,4 +22,21 @@ func ValidateFilters(v *validator.Validator, f Filters) {
 
 	// check sort param matches a value in safelist
 	v.Check(validator.PermittedValue(f.Sort, f.SortSafeList...), "sort", "must be a valid value")
+}
+
+func (f Filters) sortColumn() string {
+	for _, safeValue := range f.SortSafeList {
+		if f.Sort == safeValue {
+			return strings.TrimPrefix(f.Sort, "-")
+		}
+	}
+
+	panic("unsafe sort parametere: " + f.Sort)
+}
+
+func (f Filters) sortDirection() string {
+	if strings.HasPrefix(f.Sort, "-") {
+		return "ASC"
+	}
+	return "DESC"
 }
