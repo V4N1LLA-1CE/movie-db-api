@@ -179,9 +179,12 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 	stmt := fmt.Sprintf(`
     SELECT id, title, year, runtime, genres, created_at, version
     FROM movies
-    WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
+    WHERE lower(title) LIKE lower('%%%%' || $1 || '%%%%') OR $1 = ''
     AND (genres @> $2 OR $2 = '{}')
-    ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
+    ORDER BY %s %s, id ASC`,
+		filters.sortColumn(),
+		filters.sortDirection(),
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
