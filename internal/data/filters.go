@@ -36,7 +36,7 @@ func (f Filters) sortColumn() string {
 
 func (f Filters) sortDirection() string {
 	if strings.HasPrefix(f.Sort, "-") {
-		return "ASC"
+		return "DESC"
 	}
-	return "DESC"
+	return "ASC"
 }
