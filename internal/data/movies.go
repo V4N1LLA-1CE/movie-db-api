@@ -172,3 +172,53 @@ func (m MovieModel) Delete(id int64) error {
 
 	return nil
 }
+
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	stmt := `SELECT id, title, year, runtime, genres, created_at, version
+  FROM movies
+  ORDER BY id`
+
+	// timeouts
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	// init slice to hold data
+	// use ptrs to pass around movie struct for mem efficiency
+	movies := []*Movie{}
+
+	for rows.Next() {
+		var movie Movie
+
+		// scan values from row into movie
+		err := rows.Scan(
+			&movie.ID,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.CreatedAt,
+			&movie.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// append to movie slice
+		movies = append(movies, &movie)
+	}
+
+	// when rows.Next() is done, get any errors encountered during iteration
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// if nothing goes wrong, return movie slice
+	return movies, nil
+}
