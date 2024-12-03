@@ -174,15 +174,18 @@ func (m MovieModel) Delete(id int64) error {
 }
 
 func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	// true if title = arg1 or title = ""
+	// and genres contains arg2 or genres is empty (which means all)
 	stmt := `SELECT id, title, year, runtime, genres, created_at, version
   FROM movies
+  WHERE (LOWER(title) = LOWER($1) OR $1 = '')
+  AND (genres @> $2 OR $2 = '{}')
   ORDER BY id`
 
-	// timeouts
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt)
+	rows, err := m.DB.QueryContext(ctx, stmt, title, genres)
 	if err != nil {
 		return nil, err
 	}
