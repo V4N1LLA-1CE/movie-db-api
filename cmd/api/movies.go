@@ -215,3 +215,36 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
+	// input struct to hold values from request query params
+	var input struct {
+		Title             string
+		Genres            []string
+		PaginationOptions data.PaginationOptions
+	}
+
+	v := validator.New()
+
+	// get all query params
+	// qs is a url.Values type which is a map of query key values pair
+	qs := r.URL.Query()
+
+	// read and put values into input data object
+	input.Title = app.readString(qs, "title", "")
+	input.Genres = app.readCSV(qs, "genres", []string{})
+
+	// default is 1 page with 20 size
+	input.PaginationOptions.Page = app.readInt(qs, "page", 1, v)
+	input.PaginationOptions.PageSize = app.readInt(qs, "page_size", 20, v)
+
+	// default is ascending sort on id
+	input.PaginationOptions.Sort = app.readString(qs, "sort", "id")
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	fmt.Fprintf(w, "%+v\n", input)
+}

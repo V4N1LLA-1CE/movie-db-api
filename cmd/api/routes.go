@@ -19,7 +19,11 @@ func (app *application) routes() http.Handler {
 	// set custom error handler for 405 Method Not Allowed responses
 	r.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
+	// healthcheck endpoint
 	r.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthCheckHandler)
+
+	// movie endpoints
+	r.HandlerFunc(http.MethodGet, "/v1/movies", app.listMoviesHandler)
 	r.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
 	r.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
 	r.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.updateMovieHandler)
