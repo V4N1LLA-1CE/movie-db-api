@@ -219,9 +219,9 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
 	// input struct to hold values from request query params
 	var input struct {
-		Title             string
-		Genres            []string
-		PaginationOptions data.PaginationOptions
+		Title   string
+		Genres  []string
+		Filters data.Filters
 	}
 
 	v := validator.New()
@@ -235,13 +235,26 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	input.Genres = app.readCSV(qs, "genres", []string{})
 
 	// default is 1 page with 20 size
-	input.PaginationOptions.Page = app.readInt(qs, "page", 1, v)
-	input.PaginationOptions.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 
 	// default is ascending sort on id
-	input.PaginationOptions.Sort = app.readString(qs, "sort", "id")
+	input.Filters.Sort = app.readString(qs, "sort", "id")
 
-	if !v.Valid() {
+	// add list of things to sort by
+	input.Filters.SortSafeList = []string{
+		"id",
+		"title",
+		"year",
+		"runtime",
+		"-id",
+		"-title",
+		"-year",
+		"-runtime",
+	}
+
+	// add check on filter struct
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
