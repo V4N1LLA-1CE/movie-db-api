@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/V4N1LLA-1CE/movie-db-api/internal/validator"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -141,4 +143,45 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 
 	// return no error
 	return nil
+}
+
+func (app *application) readString(qs url.Values, key, defaultValue string) string {
+	// get query param value
+	s := qs.Get(key)
+
+	// if no query param value, return default value
+	if s == "" {
+		return defaultValue
+	}
+
+	return s
+}
+
+func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
+	// get query param value
+	csv := qs.Get(key)
+
+	// if no value, return default
+	if csv == "" {
+		return defaultValue
+	}
+
+	return strings.Split(csv, ",")
+}
+
+func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	s := qs.Get(key)
+	if s == "" {
+		return defaultValue
+	}
+
+	// try to convert s to int before returning
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		v.AddError(key, "must be a number")
+		return defaultValue
+	}
+
+	// return the integer if nothing goes wrong
+	return i
 }
