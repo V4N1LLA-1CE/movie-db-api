@@ -64,31 +64,34 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		// only carry out check if rate limiting is enabled
+		if app.config.limiter.enabled {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
 
-		// lock mutex to allow only 1 goroutine to read/write to clients map at a time
-		mu.Lock()
+			// lock mutex to allow only 1 goroutine to read/write to clients map at a time
+			mu.Lock()
 
-		// check if ip exists in map, if not, add a new client and add to map with ip
-		if _, exists := clients[ip]; !exists {
-			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
-		}
+			// check if ip exists in map, if not, add a new client and add to map with ip
+			if _, exists := clients[ip]; !exists {
+				clients[ip] = &client{limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst)}
+			}
 
-		// update client's most recent request
-		clients[ip].mostRecentRequest = time.Now()
+			// update client's most recent request
+			clients[ip].mostRecentRequest = time.Now()
 
-		if !clients[ip].limiter.Allow() {
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExceededResponse(w, r)
+				return
+			}
+
+			// unlock mutex
 			mu.Unlock()
-			app.rateLimitExceededResponse(w, r)
-			return
 		}
-
-		// unlock mutex
-		mu.Unlock()
 
 		next.ServeHTTP(w, r)
 	})

@@ -16,6 +16,11 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  time.Duration
 	}
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
+	}
 }
 
 func newConfig() config {
@@ -47,6 +52,25 @@ func newConfig() config {
 	if err != nil {
 		log.Fatal("failed to parse POSTGRES_MAXIDLETIME, is this int type?")
 	}
+
+	rps, err := strconv.ParseFloat(os.Getenv("RATE_LIMIT"), 64)
+	if err != nil {
+		log.Fatal("failed to parse RATE_LIMIT, is this float64?")
+	}
+
+	burst, err := strconv.Atoi(os.Getenv("RATE_LIMIT_BURST_SIZE"))
+	if err != nil {
+		log.Fatal("failed to parse RATE_LIMIT_BURST_SIZE, is this int type?")
+	}
+
+	rpsEnabled, err := strconv.ParseBool(os.Getenv("RATE_LIMITER_ENABLED"))
+	if err != nil {
+		log.Fatal("failed to parse RATE_LIMIT_ENABLED, is this bool type?")
+	}
+
+	cfg.limiter.rps = rps
+	cfg.limiter.burst = burst
+	cfg.limiter.enabled = rpsEnabled
 
 	cfg.db.maxOpenConns = moc
 	cfg.db.maxIdleConns = mic
