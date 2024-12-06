@@ -181,7 +181,9 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
     FROM movies
     WHERE lower(title) LIKE lower('%%%%' || $1 || '%%%%') OR $1 = ''
     AND (genres @> $2 OR $2 = '{}')
-    ORDER BY %s %s, id ASC`,
+    ORDER BY %s %s, id ASC
+    LIMIT $3 OFFSET $4
+    `,
 		filters.sortColumn(),
 		filters.sortDirection(),
 	)
@@ -189,7 +191,10 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, title, genres)
+	// new array to hold arguments to query
+	args := []any{title, genres, filters.limit(), filters.offset()}
+
+	rows, err := m.DB.QueryContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
 	}
