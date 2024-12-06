@@ -174,10 +174,10 @@ func (m MovieModel) Delete(id int64) error {
 	return nil
 }
 
-func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
 	// use postgres full-text search for title
 	stmt := fmt.Sprintf(`
-    SELECT id, title, year, runtime, genres, created_at, version
+    SELECT count(*) OVER(), id, title, year, runtime, genres, created_at, version
     FROM movies
     WHERE lower(title) LIKE lower('%%%%' || $1 || '%%%%') OR $1 = ''
     AND (genres @> $2 OR $2 = '{}')
@@ -196,10 +196,12 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 
 	rows, err := m.DB.QueryContext(ctx, stmt, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
 	defer rows.Close()
+
+	totalRecords := 0
 
 	// init slice to hold data
 	// use ptrs to pass around movie struct for mem efficiency
@@ -210,6 +212,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 
 		// scan values from row into movie
 		err := rows.Scan(
+			&totalRecords,
 			&movie.ID,
 			&movie.Title,
 			&movie.Year,
@@ -219,7 +222,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 			&movie.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		// append to movie slice
@@ -228,9 +231,11 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 
 	// when rows.Next() is done, get any errors encountered during iteration
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
 	// if nothing goes wrong, return movie slice
-	return movies, nil
+	return movies, metadata, nil
 }
