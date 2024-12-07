@@ -46,7 +46,7 @@ type MovieModel struct {
 }
 
 // CRUD Methods below for movies
-func (m MovieModel) Insert(movie *Movie) error {
+func (m *MovieModel) Insert(movie *Movie) error {
 	stmt := `INSERT INTO movies (title, year, runtime, genres, version)
   VALUES ($1, $2, $3, $4, uuid_generate_v4())
   RETURNING id, created_at, version`
@@ -65,7 +65,7 @@ func (m MovieModel) Insert(movie *Movie) error {
 	return m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 }
 
-func (m MovieModel) Get(id int64) (*Movie, error) {
+func (m *MovieModel) Get(id int64) (*Movie, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
@@ -108,7 +108,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	return &movie, nil
 }
 
-func (m MovieModel) Update(movie *Movie) error {
+func (m *MovieModel) Update(movie *Movie) error {
 	// use optimistic locking for updating to prevent race conditions
 	// https://stackoverflow.com/questions/129329/optimistic-vs-pessimistic-locking/129397#129397
 	stmt := `UPDATE movies
@@ -144,7 +144,7 @@ func (m MovieModel) Update(movie *Movie) error {
 	return nil
 }
 
-func (m MovieModel) Delete(id int64) error {
+func (m *MovieModel) Delete(id int64) error {
 	if id < 1 {
 		return ErrRecordNotFound
 	}
@@ -174,7 +174,7 @@ func (m MovieModel) Delete(id int64) error {
 	return nil
 }
 
-func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+func (m *MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
 	// use postgres full-text search for title
 	stmt := fmt.Sprintf(`
     SELECT count(*) OVER(), id, title, year, runtime, genres, created_at, version
