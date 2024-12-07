@@ -24,11 +24,15 @@ pg-exec:
 
 # db migrate up
 pg-migrateup:
-	migrate -path db/migrations -database "${PG_DSN}" -verbose up
+	migrate -path db/migrations -database "${PG_DSN}" -verbose up ${n}
 
 # db migrate down
 pg-migratedown:
-	migrate -path db/migrations -database "${PG_DSN}" -verbose down
+	migrate -path db/migrations -database "${PG_DSN}" -verbose down ${n}
+
+# force migrate to specified version
+pg-fmigrate:
+	migrate -path db/migrations -database "${PG_DSN}" force ${v}
 
 pg-build:
 	make pg-container && \
@@ -40,4 +44,4 @@ pg-build:
 watch:
 	air
 
-.PHONY: watch pg-container pg-exec pg-migrateup pg-migratedown pg-createdb pg-dropdb pg-build
+.PHONY: watch pg-container pg-exec pg-migrateup pg-migratedown pg-createdb pg-dropdb pg-build pg-fmigrate
