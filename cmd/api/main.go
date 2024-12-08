@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/V4N1LLA-1CE/movie-db-api/internal/data"
+	"github.com/V4N1LLA-1CE/movie-db-api/internal/mailer"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 )
@@ -21,6 +22,7 @@ type application struct {
 	config config
 	logger *slog.Logger
 	model  data.Models
+	mailer mailer.Mailer
 }
 
 func init() {
@@ -43,6 +45,11 @@ func init() {
 		"RATE_LIMITER_ENABLED",
 		"RATE_LIMIT",
 		"RATE_LIMIT_BURST_SIZE",
+		"SMTP_HOST",
+		"SMTP_PORT",
+		"SMTP_USERNAME",
+		"SMTP_PASSWORD",
+		"SMTP_SENDER",
 	}...)
 
 	if !ok {
@@ -71,6 +78,7 @@ func main() {
 		config: cfg,
 		logger: logger,
 		model:  data.NewModels(conn),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	// start server

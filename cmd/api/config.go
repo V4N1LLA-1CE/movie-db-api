@@ -21,6 +21,13 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 func newConfig() config {
@@ -75,6 +82,17 @@ func newConfig() config {
 	cfg.db.maxOpenConns = moc
 	cfg.db.maxIdleConns = mic
 	cfg.db.maxIdleTime = time.Duration(mit) * time.Minute
+
+	port, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	if err != nil {
+		log.Fatal("failed to parse SMTP_PORT, is this int type?")
+	}
+
+	cfg.smtp.host = os.Getenv("SMTP_HOST")
+	cfg.smtp.port = port
+	cfg.smtp.username = os.Getenv("SMTP_USERNAME")
+	cfg.smtp.password = os.Getenv("SMTP_PASSWORD")
+	cfg.smtp.sender = os.Getenv("SMTP_SENDER")
 
 	return cfg
 }

@@ -1,0 +1,33 @@
+{{define "subject"}}Welcome to MovieDb!{{end}}
+
+{{define "plainbody"}}
+Hi,
+
+Thanks for choosing to sign up with MovieDB Api.
+
+For future reference, your user ID is {{.ID}}.
+
+Thanks,
+
+Austin Sofaer (Developer)
+{{end}}
+
+{{define "htmlbody"}}
+<!doctype html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+
+<body>
+    <p>Hi,</p>
+    <p>Thanks for choosing to sign up with MovieDB Api.</p>
+    <p>For future reference, your user ID is {{.ID}}.</p>
+    <p>Thanks,</p>
+    <p>Austin Sofaer (Developer)</p>
+</body>
+
+</html>
+{{end}}
