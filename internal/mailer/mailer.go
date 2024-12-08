@@ -70,11 +70,20 @@ func (m *Mailer) Send(recipient, templateFile string, data any) error {
 	msg.SetBody("text/plain", plainBody.String())
 	msg.AddAlternative("text/html", htmlBody.String())
 
-	// send email
-	err = m.dialer.DialAndSend(msg)
-	if err != nil {
-		return err
+	// send email (attempt 3 times)
+	for i := 0; i < 3; i++ {
+		err = m.dialer.DialAndSend(msg)
+
+		// if everything worked, return with no error
+		if err == nil {
+			return nil
+		}
+
+		// if not, reattempt after 500ms
+		time.Sleep(500 * time.Millisecond)
 	}
 
-	return nil
+	// if after 3 email sending reattempts failed
+	// return err
+	return err
 }
