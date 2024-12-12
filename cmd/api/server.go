@@ -43,7 +43,16 @@ func (app *application) serve() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		shutdownErr <- srv.Shutdown(ctx)
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			shutdownErr <- err
+		}
+
+		app.logger.Info("completing background tasks", "addr", srv.Addr)
+
+		// wait until all goroutines complete
+		app.wg.Wait()
+		shutdownErr <- nil
 	}()
 
 	// start http server

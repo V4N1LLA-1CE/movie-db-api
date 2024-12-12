@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/V4N1LLA-1CE/movie-db-api/internal/data"
@@ -23,6 +24,7 @@ type application struct {
 	logger *slog.Logger
 	model  data.Models
 	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func init() {
