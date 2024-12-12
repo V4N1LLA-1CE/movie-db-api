@@ -185,3 +185,24 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	// return the integer if nothing goes wrong
 	return i
 }
+
+// helper to run background goroutines
+// this helper will manage app waitgroup
+func (app *application) background(fn func()) {
+	// add to app waitgroup
+	app.wg.Add(1)
+
+	// launch background goroutine
+	go func() {
+		// decrement waitgroup before goroutine returns
+		defer app.wg.Done()
+
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.Error(fmt.Sprintf("%v", err))
+			}
+		}()
+
+		fn()
+	}()
+}
