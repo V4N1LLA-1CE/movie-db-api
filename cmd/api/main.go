@@ -22,7 +22,7 @@ const version = "1.0.0"
 type application struct {
 	config config
 	logger *slog.Logger
-	model  data.Models
+	models data.Models
 	mailer mailer.Mailer
 	wg     sync.WaitGroup
 }
@@ -79,7 +79,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
-		model:  data.NewModels(conn),
+		models: data.NewModels(conn),
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
