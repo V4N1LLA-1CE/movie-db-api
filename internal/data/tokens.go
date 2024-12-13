@@ -65,6 +65,16 @@ type TokenModel struct {
 	DB *sql.DB
 }
 
+func (m *TokenModel) New(userID int64, ttl time.Duration, scope string) (*Token, error) {
+	token, err := generateToken(userID, ttl, scope)
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.Insert(token)
+	return token, err
+}
+
 func (m *TokenModel) Insert(token *Token) error {
 	stmt := `INSERT INTO tokens (hash, user_id, expiry, scope)
   VALUES ($1, $2, $3, $4)`
