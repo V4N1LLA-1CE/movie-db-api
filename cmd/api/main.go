@@ -55,7 +55,7 @@ func init() {
 	}...)
 
 	if !ok {
-		log.Fatalf(err)
+		log.Fatal(err)
 	}
 }
 

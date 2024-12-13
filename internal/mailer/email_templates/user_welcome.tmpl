@@ -7,6 +7,12 @@ Thanks for choosing to sign up with MovieDB Api.
 
 For future reference, your user ID is {{.ID}}.
 
+Please send a request to the `PUT /v1/users/activated` endpoint with the following JSON body to activate your account:
+
+{"token": "{{.activationToken}}"}
+
+Please note that this is a one-time use token and it will expire in 3 days.
+
 Thanks,
 
 Austin Sofaer (Developer)
@@ -25,6 +31,11 @@ Austin Sofaer (Developer)
     <p>Hi,</p>
     <p>Thanks for choosing to sign up with MovieDB Api.</p>
     <p>For future reference, your user ID is {{.ID}}.</p>
+    <p>Please send a request to the <code>PUT /v1/users/activated</code> endpoint with the following JSON body to activate your account:</p>
+    <pre><code>
+    {"token": "{{.activationToken}}"}
+    </code></pre>
+    <p>Please note that this is a one-time use token and it will expire in 3 days.</p>
     <p>Thanks,</p>
     <p>Austin Sofaer (Developer)</p>
 </body>
