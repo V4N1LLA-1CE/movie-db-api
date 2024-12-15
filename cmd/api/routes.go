@@ -33,6 +33,9 @@ func (app *application) routes() http.Handler {
 	r.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	r.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 
+	// token authentication
+	r.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+
 	// return router instance and use middlewares
 	return app.recoverPanic(app.rateLimit(r))
 }
