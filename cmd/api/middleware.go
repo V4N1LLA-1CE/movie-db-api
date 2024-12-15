@@ -1,12 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/V4N1LLA-1CE/movie-db-api/internal/data"
+	"github.com/V4N1LLA-1CE/movie-db-api/internal/validator"
 	"golang.org/x/time/rate"
 )
 
@@ -93,6 +97,63 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 			mu.Unlock()
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// add "Vary: Authorization" header to response
+		w.Header().Add("Vary", "Authorization")
+
+		// retrieve value of authorization header from request
+		// return "" if no header found
+		authorizationHeader := r.Header.Get("Authorization")
+
+		// if no token found in header, set the request context to anonymous user
+		// and serve next request
+		if authorizationHeader == "" {
+			r = app.contextSetUser(r, data.AnonUser)
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// if there is token in auth header,
+		// split "Bearer <token>"
+		// if wrong format, send 401 unauthorized
+		headerParts := strings.Split(authorizationHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		token := headerParts[1]
+
+		// validate token
+		v := validator.New()
+
+		data.ValidateTokenPlaintext(v, token)
+		if !v.Valid() {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		// get user associated with token
+		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.invalidCredentialsResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+
+		// set user for request context
+		r = app.contextSetUser(r, user)
+
+		// go to next request
 		next.ServeHTTP(w, r)
 	})
 }
