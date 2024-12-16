@@ -23,11 +23,11 @@ func (app *application) routes() http.Handler {
 	r.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthCheckHandler)
 
 	// movie endpoints
-	r.HandlerFunc(http.MethodGet, "/v1/movies", app.requiredActivatedUser(app.listMoviesHandler))
-	r.HandlerFunc(http.MethodPost, "/v1/movies", app.requiredActivatedUser(app.createMovieHandler))
-	r.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requiredActivatedUser(app.showMovieHandler))
-	r.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.requiredActivatedUser(app.updateMovieHandler))
-	r.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requiredActivatedUser(app.deleteMovieHandler))
+	r.HandlerFunc(http.MethodGet, "/v1/movies", app.requirePermission("movies:read", app.listMoviesHandler))
+	r.HandlerFunc(http.MethodPost, "/v1/movies", app.requirePermission("movies:write", app.createMovieHandler))
+	r.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requirePermission("movies:read", app.showMovieHandler))
+	r.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.requirePermission("movies:write", app.updateMovieHandler))
+	r.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requirePermission("movies:write", app.deleteMovieHandler))
 
 	// user endpoints
 	r.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
