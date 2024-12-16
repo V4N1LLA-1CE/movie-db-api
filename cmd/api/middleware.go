@@ -157,3 +157,36 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// middleware for checking if account is authenticated and activated
+// use middleware on handlerfunc, not router
+func (app *application) requiredActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+
+		// check if account is activated
+		if !user.Activated {
+			app.inactiveAccountResponse(w, r)
+			return
+		}
+
+		// serve following handler
+		next.ServeHTTP(w, r)
+	})
+
+	// wrap above middleware func with requireAuthenticatedUser() middleware below
+	return app.requireAuthenticatedUser(fn)
+}
+
+func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+
+		if user.IsAnon() {
+			app.authenticationRequiredResponse(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
