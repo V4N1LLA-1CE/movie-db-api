@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"log"
 	"log/slog"
@@ -62,6 +63,16 @@ func init() {
 func main() {
 	// get app configuration
 	cfg := newConfig()
+
+	// get trusted origins from cli flag
+	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
+		cfg.cors.trustedOrigins = strings.Fields(val)
+		return nil
+	})
+	flag.Parse()
+	if len(cfg.cors.trustedOrigins) == 0 {
+		log.Fatal("Need cors-trusted-origins flag value")
+	}
 
 	// initialise structured logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
