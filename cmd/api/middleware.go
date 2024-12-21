@@ -215,7 +215,7 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 func (app *application) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// add "Vary: Origin" header
-		w.Header().Set("Vary", "Origin")
+		w.Header().Add("Vary", "Origin")
 
 		// get Origin from request
 		origin := r.Header.Get("Origin")
@@ -225,6 +225,20 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 			for i := range app.config.cors.trustedOrigins {
 				if origin == app.config.cors.trustedOrigins[i] {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
+
+					// check if request has HTTP method OPTIONS and contains
+					// "Access-Control-Request-Method" header, if it does, treat as
+					// preflight request
+					if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+						// set preflight response headers
+						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+
+						// write header along with 200 OK status
+						w.WriteHeader(http.StatusOK)
+						return
+					}
+
 					break
 				}
 			}
